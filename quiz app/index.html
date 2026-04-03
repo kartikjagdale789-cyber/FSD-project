@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-card">
+            <div class="progress-bar">
+                <div class="progress" id="progress"></div>
+            </div>
+            <div class="timer" id="timer">30</div>
+            <div class="question" id="question"></div>
+            <div class="options" id="options"></div>
+            <button class="next-btn" id="next-btn" disabled>Next</button>
+            <div class="score" id="score" style="display: none;">
+                <h2>Your Score: <span id="final-score"></span></h2>
+                <button class="restart-btn" id="restart-btn">Restart Quiz</button>
+            </div>
+        </div>
+    </div>
+    <audio id="correct-sound" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.wav"></audio>
+    <audio id="incorrect-sound" src="https://www.soundjay.com/misc/sounds/fail-buzzer-01.wav"></audio>
+    <script src="script.js"></script>
+</body>
+</html>
