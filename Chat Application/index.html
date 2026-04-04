@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Real-time Chat</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="join-screen" id="joinScreen">
+    <div class="join-card">
+      <h1>Join Chat</h1>
+      <p>Enter your username to start chatting in real time.</p>
+      <input type="text" id="usernameInput" placeholder="Username" maxlength="20" />
+      <button id="joinBtn">Join Chat</button>
+    </div>
+  </div>
+
+  <div class="chat-app hidden" id="chatApp">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-avatar">C</div>
+        <div>
+          <h2>Chat Room</h2>
+          <p>Online now</p>
+        </div>
+      </div>
+
+      <div class="users-panel">
+        <div class="panel-header">
+          <h3>Online</h3>
+          <span id="onlineCount">0</span>
+        </div>
+        <ul id="usersList"></ul>
+      </div>
+
+      <div class="settings-panel">
+        <p>Tip: click a user to message privately.</p>
+      </div>
+    </aside>
+
+    <main class="chat-panel">
+      <header class="chat-header">
+        <div>
+          <h2>Global Chat</h2>
+          <p id="statusText">Type a message and press enter</p>
+        </div>
+        <div class="recipient-badge hidden" id="recipientBadge">
+          Private to <span id="recipientName"></span>
+          <button id="clearPrivate">X</button>
+        </div>
+      </header>
+
+      <section class="messages" id="messages"></section>
+
+      <div class="typing-indicator" id="typingIndicator"></div>
+
+      <form id="messageForm" class="message-form">
+        <button type="button" class="emoji-btn" id="emojiBtn">😊</button>
+        <div class="emoji-picker hidden" id="emojiPicker">
+          <button type="button">😀</button>
+          <button type="button">😂</button>
+          <button type="button">😍</button>
+          <button type="button">🤩</button>
+          <button type="button">👍</button>
+          <button type="button">🎉</button>
+          <button type="button">😎</button>
+          <button type="button">💬</button>
+        </div>
+        <input id="messageInput" autocomplete="off" placeholder="Write a message..." />
+        <button type="submit" class="send-btn">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
