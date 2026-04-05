@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple E-Commerce Store | Home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Sora:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="home">
+  <header class="site-header">
+    <nav class="container navbar">
+      <a class="brand" href="index.html">Shop<span>Lite</span></a>
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">Menu</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="cart.html">Cart <span class="cart-count" id="cartCount">0</span></a></li>
+        <li><a href="about.html">About</a></li>
+        <li><button id="themeToggle" class="theme-btn" type="button">Dark Mode</button></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <p class="chip">Beginner Friendly Store</p>
+          <h1>Simple E-Commerce Store (No Payment)</h1>
+          <p>Browse products, add items to cart, update quantity, and explore frontend + backend basics.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="container controls">
+      <input type="text" id="searchInput" placeholder="Search products by name..." />
+      <select id="categoryFilter">
+        <option value="all">All Categories</option>
+      </select>
+      <select id="priceSort">
+        <option value="default">Sort By</option>
+        <option value="low-high">Price: Low to High</option>
+        <option value="high-low">Price: High to Low</option>
+      </select>
+    </section>
+
+    <section class="container page-space">
+      <div id="productsContainer" class="product-grid"></div>
+      <p id="productsEmpty" class="empty-box hidden">No products found for this filter.</p>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

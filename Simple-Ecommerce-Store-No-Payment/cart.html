@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple E-Commerce Store | Cart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Sora:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="cart">
+  <header class="site-header">
+    <nav class="container navbar">
+      <a class="brand" href="index.html">Shop<span>Lite</span></a>
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">Menu</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="cart.html" class="active">Cart <span class="cart-count" id="cartCount">0</span></a></li>
+        <li><a href="about.html">About</a></li>
+        <li><button id="themeToggle" class="theme-btn" type="button">Dark Mode</button></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container page-space">
+    <h1>Your Cart</h1>
+    <p>Update quantities or remove products anytime.</p>
+
+    <section id="cartItems" class="cart-list"></section>
+    <p id="cartEmpty" class="empty-box hidden">Your cart is empty. Add some products from the home page.</p>
+
+    <section class="summary-card" id="cartSummary">
+      <h2>Order Summary</h2>
+      <p><strong>Total:</strong> <span id="cartTotal">$0.00</span></p>
+      <button class="primary-btn full" type="button">Checkout Disabled (No Payment)</button>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

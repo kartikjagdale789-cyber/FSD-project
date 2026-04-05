@@ -1,0 +1,13 @@
+{
+  "name": "simple-ecommerce-store-no-payment",
+  "version": "1.0.0",
+  "description": "Beginner-friendly full stack e-commerce store without payment integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
