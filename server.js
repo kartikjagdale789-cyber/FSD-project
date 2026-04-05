@@ -1,91 +1,123 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const express = require("express");
+const fs = require("fs").promises;
+const path = require("path");
 
 const app = express();
-const PORT = 3000;
-const MENU_FILE = path.join(__dirname, 'menu.json');
+const PORT = 3008;
+const DATA_FILE = path.join(__dirname, "appointments.json");
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: "30kb" }));
+app.use(express.static(path.join(__dirname, "public")));
 
-// Read menu items from the JSON file.
-function readMenu() {
-  if (!fs.existsSync(MENU_FILE)) {
-    return [];
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isValidDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function isValidTime(value) {
+  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
+}
+
+async function readAppointments() {
+  try {
+    const data = await fs.readFile(DATA_FILE, "utf8");
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      await fs.writeFile(DATA_FILE, "[]", "utf8");
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+async function writeAppointments(appointments) {
+  await fs.writeFile(DATA_FILE, JSON.stringify(appointments, null, 2), "utf8");
+}
+
+app.get("/api/appointments", async (req, res) => {
+  try {
+    const appointments = await readAppointments();
+    res.json(appointments);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to load appointments." });
+  }
+});
+
+app.post("/api/appointments", async (req, res) => {
+  const { name, date, time } = req.body;
+
+  if (!isNonEmptyString(name)) {
+    return res.status(400).json({ error: "Name is required." });
   }
 
-  const rawData = fs.readFileSync(MENU_FILE, 'utf-8');
+  if (!isNonEmptyString(date) || !isValidDate(date.trim())) {
+    return res.status(400).json({ error: "Valid date is required (YYYY-MM-DD)." });
+  }
 
-  if (!rawData.trim()) {
-    return [];
+  if (!isNonEmptyString(time) || !isValidTime(time.trim())) {
+    return res.status(400).json({ error: "Valid time is required (HH:MM)." });
   }
 
   try {
-    return JSON.parse(rawData);
+    const appointments = await readAppointments();
+    const cleanName = name.trim().replace(/\s+/g, " ");
+    const cleanDate = date.trim();
+    const cleanTime = time.trim();
+
+    const conflict = appointments.some(
+      (item) => item.date === cleanDate && item.time === cleanTime
+    );
+
+    if (conflict) {
+      return res.status(409).json({ error: "This time slot is already booked." });
+    }
+
+    const appointment = {
+      id: Date.now().toString(),
+      name: cleanName,
+      date: cleanDate,
+      time: cleanTime,
+      createdAt: new Date().toISOString()
+    };
+
+    appointments.push(appointment);
+    appointments.sort((a, b) => {
+      const left = `${a.date}T${a.time}`;
+      const right = `${b.date}T${b.time}`;
+      return left.localeCompare(right);
+    });
+
+    await writeAppointments(appointments);
+    return res.status(201).json(appointment);
   } catch (error) {
-    console.error('Failed to parse menu.json:', error.message);
-    return [];
+    return res.status(500).json({ error: "Failed to book appointment." });
   }
-}
-
-// Save menu items to the JSON file.
-function writeMenu(menuItems) {
-  fs.writeFileSync(MENU_FILE, JSON.stringify(menuItems, null, 2));
-}
-
-// GET: Return all menu items.
-app.get('/api/menu', (req, res) => {
-  const menuItems = readMenu();
-  res.json(menuItems);
 });
 
-// POST: Add one menu item.
-app.post('/api/menu', (req, res) => {
-  const { name, price } = req.body;
-
-  if (!name || !price) {
-    return res.status(400).json({ error: 'Name and price are required.' });
-  }
-
-  const cleanName = name.toString().trim();
-  const numericPrice = Number(price);
-
-  if (!cleanName) {
-    return res.status(400).json({ error: 'Item name cannot be empty.' });
-  }
-
-  if (Number.isNaN(numericPrice) || numericPrice <= 0) {
-    return res.status(400).json({ error: 'Price must be a number greater than 0.' });
-  }
-
-  const menuItems = readMenu();
-  const newItem = {
-    id: Date.now().toString(),
-    name: cleanName,
-    price: numericPrice
-  };
-
-  menuItems.push(newItem);
-  writeMenu(menuItems);
-
-  res.status(201).json(newItem);
-});
-
-// DELETE: Remove one menu item by id.
-app.delete('/api/menu/:id', (req, res) => {
+app.delete("/api/appointments/:id", async (req, res) => {
   const { id } = req.params;
-  const menuItems = readMenu();
-  const updatedMenu = menuItems.filter((item) => item.id !== id);
 
-  if (updatedMenu.length === menuItems.length) {
-    return res.status(404).json({ error: 'Menu item not found.' });
+  try {
+    const appointments = await readAppointments();
+    const nextAppointments = appointments.filter((item) => item.id !== id);
+
+    if (nextAppointments.length === appointments.length) {
+      return res.status(404).json({ error: "Appointment not found." });
+    }
+
+    await writeAppointments(nextAppointments);
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to cancel appointment." });
   }
-
-  writeMenu(updatedMenu);
-  res.json({ message: 'Menu item deleted successfully.' });
 });
 
 app.listen(PORT, () => {
-  console.log(`Restaurant Menu server running at http://localhost:${PORT}`);
+  console.log(`Appointment Booking server running at http://localhost:${PORT}`);
 });
