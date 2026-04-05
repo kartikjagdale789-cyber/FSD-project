@@ -3,85 +3,136 @@ const fs = require("fs").promises;
 const path = require("path");
 
 const app = express();
-const PORT = 3000;
-const DATA_FILE = path.join(__dirname, "complaints.json");
+const PORT = 3003;
+const DATA_FILE = path.join(__dirname, "courses.json");
 
-app.use(express.json());
+app.use(express.json({ limit: "50kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-async function readComplaints() {
+function normalizeText(value) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function isValidText(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+async function readData() {
   try {
-    const data = await fs.readFile(DATA_FILE, "utf8");
-    return JSON.parse(data);
+    const fileData = await fs.readFile(DATA_FILE, "utf8");
+    const parsed = JSON.parse(fileData);
+
+    return {
+      courses: Array.isArray(parsed.courses) ? parsed.courses : [],
+      enrollments: Array.isArray(parsed.enrollments) ? parsed.enrollments : []
+    };
   } catch (error) {
     if (error.code === "ENOENT") {
-      await fs.writeFile(DATA_FILE, "[]", "utf8");
-      return [];
+      const fallback = { courses: [], enrollments: [] };
+      await fs.writeFile(DATA_FILE, JSON.stringify(fallback, null, 2), "utf8");
+      return fallback;
     }
     throw error;
   }
 }
 
-async function writeComplaints(complaints) {
-  await fs.writeFile(DATA_FILE, JSON.stringify(complaints, null, 2), "utf8");
+async function writeData(data) {
+  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), "utf8");
 }
 
-app.get("/api/complaints", async (req, res) => {
+app.get("/api/courses", async (req, res) => {
   try {
-    const complaints = await readComplaints();
-    res.json(complaints);
+    const data = await readData();
+    res.json(data.courses);
   } catch (error) {
-    res.status(500).json({ error: "Failed to load complaints." });
+    res.status(500).json({ error: "Failed to load courses." });
   }
 });
 
-app.post("/api/complaints", async (req, res) => {
-  const { name, issue } = req.body;
+app.post("/api/courses", async (req, res) => {
+  const { title } = req.body;
 
-  if (!name || !name.trim() || !issue || !issue.trim()) {
-    return res.status(400).json({ error: "Name and issue are required." });
+  if (!isValidText(title)) {
+    return res.status(400).json({ error: "Course title is required." });
   }
 
   try {
-    const complaints = await readComplaints();
-    const newComplaint = {
+    const data = await readData();
+    const normalizedTitle = normalizeText(title);
+
+    const alreadyExists = data.courses.some(
+      (course) => course.title.toLowerCase() === normalizedTitle.toLowerCase()
+    );
+
+    if (alreadyExists) {
+      return res.status(409).json({ error: "Course already exists." });
+    }
+
+    const course = {
       id: Date.now().toString(),
-      name: name.trim(),
-      issue: issue.trim(),
-      status: "pending",
+      title: normalizedTitle,
       createdAt: new Date().toISOString()
     };
 
-    complaints.unshift(newComplaint);
-    await writeComplaints(complaints);
-
-    return res.status(201).json(newComplaint);
+    data.courses.unshift(course);
+    await writeData(data);
+    return res.status(201).json(course);
   } catch (error) {
-    return res.status(500).json({ error: "Failed to register complaint." });
+    return res.status(500).json({ error: "Failed to add course." });
   }
 });
 
-app.patch("/api/complaints/:id/resolve", async (req, res) => {
-  const { id } = req.params;
+app.post("/api/enrollments", async (req, res) => {
+  const { studentName, courseId } = req.body;
+
+  if (!isValidText(studentName) || !isValidText(courseId)) {
+    return res.status(400).json({ error: "Student name and course are required." });
+  }
 
   try {
-    const complaints = await readComplaints();
-    const index = complaints.findIndex((complaint) => complaint.id === id);
+    const data = await readData();
+    const course = data.courses.find((item) => item.id === courseId.trim());
 
-    if (index === -1) {
-      return res.status(404).json({ error: "Complaint not found." });
+    if (!course) {
+      return res.status(404).json({ error: "Selected course not found." });
     }
 
-    complaints[index].status = "resolved";
-    complaints[index].resolvedAt = new Date().toISOString();
+    const normalizedStudentName = normalizeText(studentName);
+    const duplicate = data.enrollments.some(
+      (item) =>
+        item.courseId === course.id &&
+        item.studentName.toLowerCase() === normalizedStudentName.toLowerCase()
+    );
 
-    await writeComplaints(complaints);
-    return res.json(complaints[index]);
+    if (duplicate) {
+      return res.status(409).json({ error: "Student already enrolled in this course." });
+    }
+
+    const enrollment = {
+      id: Date.now().toString(),
+      studentName: normalizedStudentName,
+      courseId: course.id,
+      courseTitle: course.title,
+      enrolledAt: new Date().toISOString()
+    };
+
+    data.enrollments.unshift(enrollment);
+    await writeData(data);
+    return res.status(201).json(enrollment);
   } catch (error) {
-    return res.status(500).json({ error: "Failed to update complaint status." });
+    return res.status(500).json({ error: "Failed to enroll student." });
+  }
+});
+
+app.get("/api/enrollments", async (req, res) => {
+  try {
+    const data = await readData();
+    res.json(data.enrollments);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to load enrollments." });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Complaint Registration server running at http://localhost:${PORT}`);
+  console.log(`Course Enrollment server running at http://localhost:${PORT}`);
 });

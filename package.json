@@ -1,7 +1,7 @@
 {
-  "name": "digital-diary",
+  "name": "course-enrollment",
   "version": "1.0.0",
-  "description": "Simple full-stack digital diary app with Express and JSON storage",
+  "description": "Beginner-friendly course enrollment app with Express and JSON file storage",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
