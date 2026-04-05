@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feedback Collection System | Feedback List</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="feedback-list">
+  <header class="header">
+    <nav class="container nav">
+      <a href="index.html" class="logo">FeedbackFlow</a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="feedback.html" class="active">Feedback List</a></li>
+        <li><button id="themeToggle" class="theme-toggle" type="button">Dark Mode</button></li>
+      </ul>
+      <button class="menu-btn" id="menuBtn" type="button">Menu</button>
+    </nav>
+  </header>
+
+  <main class="container page">
+    <section class="card admin-tools">
+      <h1>Admin Feedback View</h1>
+      <p id="averageRating">Average rating: 0.0 / 5</p>
+
+      <div class="tool-grid">
+        <select id="filterRating">
+          <option value="all">Filter: All Ratings</option>
+          <option value="5">5 Stars</option>
+          <option value="4">4 Stars</option>
+          <option value="3">3 Stars</option>
+          <option value="2">2 Stars</option>
+          <option value="1">1 Star</option>
+        </select>
+
+        <select id="sortOrder">
+          <option value="latest">Sort: Latest First</option>
+          <option value="oldest">Sort: Oldest First</option>
+        </select>
+
+        <button class="btn-secondary" id="exportJsonBtn" type="button">Export JSON</button>
+        <button class="btn-secondary" id="exportCsvBtn" type="button">Export CSV</button>
+      </div>
+    </section>
+
+    <section id="feedbackContainer" class="feedback-grid"></section>
+    <p id="emptyState" class="empty hidden">No feedback found for selected filter.</p>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

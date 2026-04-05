@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feedback Collection System | Home</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="home">
+  <header class="header">
+    <nav class="container nav">
+      <a href="index.html" class="logo">FeedbackFlow</a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="feedback.html">Feedback List</a></li>
+        <li><button id="themeToggle" class="theme-toggle" type="button">Dark Mode</button></li>
+      </ul>
+      <button class="menu-btn" id="menuBtn" type="button">Menu</button>
+    </nav>
+  </header>
+
+  <main class="container page">
+    <section class="card form-card">
+      <h1>Share Your Feedback</h1>
+      <p>Your opinion helps us improve our service.</p>
+
+      <form id="feedbackForm" novalidate>
+        <label for="name">Name</label>
+        <input id="name" type="text" placeholder="Enter your name" required />
+
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="Enter your email" required />
+        <small id="emailError" class="error-text"></small>
+
+        <label>Rating</label>
+        <div id="starRating" class="star-rating" aria-label="Rate from 1 to 5 stars">
+          <button type="button" class="star" data-rating="1">★</button>
+          <button type="button" class="star" data-rating="2">★</button>
+          <button type="button" class="star" data-rating="3">★</button>
+          <button type="button" class="star" data-rating="4">★</button>
+          <button type="button" class="star" data-rating="5">★</button>
+        </div>
+        <small id="ratingError" class="error-text"></small>
+
+        <label for="comments">Comments</label>
+        <textarea id="comments" rows="5" placeholder="Write your feedback..."></textarea>
+
+        <button class="btn-primary" type="submit">Submit Feedback</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
