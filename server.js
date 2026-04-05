@@ -3,121 +3,85 @@ const fs = require("fs").promises;
 const path = require("path");
 
 const app = express();
-const PORT = 3008;
-const DATA_FILE = path.join(__dirname, "appointments.json");
+const PORT = 3000;
+const DATA_FILE = path.join(__dirname, "complaints.json");
 
-app.use(express.json({ limit: "30kb" }));
+app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-function isNonEmptyString(value) {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function isValidDate(value) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
-function isValidTime(value) {
-  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
-}
-
-async function readAppointments() {
+async function readComplaints() {
   try {
     const data = await fs.readFile(DATA_FILE, "utf8");
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : [];
+    return JSON.parse(data);
   } catch (error) {
     if (error.code === "ENOENT") {
       await fs.writeFile(DATA_FILE, "[]", "utf8");
       return [];
     }
-
     throw error;
   }
 }
 
-async function writeAppointments(appointments) {
-  await fs.writeFile(DATA_FILE, JSON.stringify(appointments, null, 2), "utf8");
+async function writeComplaints(complaints) {
+  await fs.writeFile(DATA_FILE, JSON.stringify(complaints, null, 2), "utf8");
 }
 
-app.get("/api/appointments", async (req, res) => {
+app.get("/api/complaints", async (req, res) => {
   try {
-    const appointments = await readAppointments();
-    res.json(appointments);
+    const complaints = await readComplaints();
+    res.json(complaints);
   } catch (error) {
-    res.status(500).json({ error: "Failed to load appointments." });
+    res.status(500).json({ error: "Failed to load complaints." });
   }
 });
 
-app.post("/api/appointments", async (req, res) => {
-  const { name, date, time } = req.body;
+app.post("/api/complaints", async (req, res) => {
+  const { name, issue } = req.body;
 
-  if (!isNonEmptyString(name)) {
-    return res.status(400).json({ error: "Name is required." });
-  }
-
-  if (!isNonEmptyString(date) || !isValidDate(date.trim())) {
-    return res.status(400).json({ error: "Valid date is required (YYYY-MM-DD)." });
-  }
-
-  if (!isNonEmptyString(time) || !isValidTime(time.trim())) {
-    return res.status(400).json({ error: "Valid time is required (HH:MM)." });
+  if (!name || !name.trim() || !issue || !issue.trim()) {
+    return res.status(400).json({ error: "Name and issue are required." });
   }
 
   try {
-    const appointments = await readAppointments();
-    const cleanName = name.trim().replace(/\s+/g, " ");
-    const cleanDate = date.trim();
-    const cleanTime = time.trim();
-
-    const conflict = appointments.some(
-      (item) => item.date === cleanDate && item.time === cleanTime
-    );
-
-    if (conflict) {
-      return res.status(409).json({ error: "This time slot is already booked." });
-    }
-
-    const appointment = {
+    const complaints = await readComplaints();
+    const newComplaint = {
       id: Date.now().toString(),
-      name: cleanName,
-      date: cleanDate,
-      time: cleanTime,
+      name: name.trim(),
+      issue: issue.trim(),
+      status: "pending",
       createdAt: new Date().toISOString()
     };
 
-    appointments.push(appointment);
-    appointments.sort((a, b) => {
-      const left = `${a.date}T${a.time}`;
-      const right = `${b.date}T${b.time}`;
-      return left.localeCompare(right);
-    });
+    complaints.unshift(newComplaint);
+    await writeComplaints(complaints);
 
-    await writeAppointments(appointments);
-    return res.status(201).json(appointment);
+    return res.status(201).json(newComplaint);
   } catch (error) {
-    return res.status(500).json({ error: "Failed to book appointment." });
+    return res.status(500).json({ error: "Failed to register complaint." });
   }
 });
 
-app.delete("/api/appointments/:id", async (req, res) => {
+app.patch("/api/complaints/:id/resolve", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const appointments = await readAppointments();
-    const nextAppointments = appointments.filter((item) => item.id !== id);
+    const complaints = await readComplaints();
+    const index = complaints.findIndex((complaint) => complaint.id === id);
 
-    if (nextAppointments.length === appointments.length) {
-      return res.status(404).json({ error: "Appointment not found." });
+    if (index === -1) {
+      return res.status(404).json({ error: "Complaint not found." });
     }
 
-    await writeAppointments(nextAppointments);
-    return res.status(204).send();
+    complaints[index].status = "resolved";
+    complaints[index].resolvedAt = new Date().toISOString();
+
+    await writeComplaints(complaints);
+    return res.json(complaints[index]);
   } catch (error) {
-    return res.status(500).json({ error: "Failed to cancel appointment." });
+    return res.status(500).json({ error: "Failed to update complaint status." });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Appointment Booking server running at http://localhost:${PORT}`);
+  console.log(`Complaint Registration server running at http://localhost:${PORT}`);
 });
