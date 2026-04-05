@@ -4,18 +4,18 @@ const path = require('path');
 
 const app = express();
 const PORT = 3000;
-const APPLICATIONS_FILE = path.join(__dirname, 'applications.json');
+const MENU_FILE = path.join(__dirname, 'menu.json');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Read all applications from JSON file.
-function readApplications() {
-  if (!fs.existsSync(APPLICATIONS_FILE)) {
+// Read menu items from the JSON file.
+function readMenu() {
+  if (!fs.existsSync(MENU_FILE)) {
     return [];
   }
 
-  const rawData = fs.readFileSync(APPLICATIONS_FILE, 'utf-8');
+  const rawData = fs.readFileSync(MENU_FILE, 'utf-8');
 
   if (!rawData.trim()) {
     return [];
@@ -24,68 +24,68 @@ function readApplications() {
   try {
     return JSON.parse(rawData);
   } catch (error) {
-    console.error('Could not parse applications.json:', error.message);
+    console.error('Failed to parse menu.json:', error.message);
     return [];
   }
 }
 
-// Save applications back to JSON file.
-function writeApplications(applications) {
-  fs.writeFileSync(APPLICATIONS_FILE, JSON.stringify(applications, null, 2));
+// Save menu items to the JSON file.
+function writeMenu(menuItems) {
+  fs.writeFileSync(MENU_FILE, JSON.stringify(menuItems, null, 2));
 }
 
-// GET: Return all applications (admin view).
-app.get('/api/applications', (req, res) => {
-  const applications = readApplications();
-  res.json(applications);
+// GET: Return all menu items.
+app.get('/api/menu', (req, res) => {
+  const menuItems = readMenu();
+  res.json(menuItems);
 });
 
-// POST: Submit a new job application.
-app.post('/api/applications', (req, res) => {
-  const { name, email, resumeLink } = req.body;
+// POST: Add one menu item.
+app.post('/api/menu', (req, res) => {
+  const { name, price } = req.body;
 
-  if (!name || !email || !resumeLink) {
-    return res.status(400).json({ error: 'Name, email, and resume link are required.' });
+  if (!name || !price) {
+    return res.status(400).json({ error: 'Name and price are required.' });
   }
 
   const cleanName = name.toString().trim();
-  const cleanEmail = email.toString().trim();
-  const cleanResumeLink = resumeLink.toString().trim();
+  const numericPrice = Number(price);
 
-  if (!cleanName || !cleanEmail || !cleanResumeLink) {
-    return res.status(400).json({ error: 'All fields must be filled.' });
+  if (!cleanName) {
+    return res.status(400).json({ error: 'Item name cannot be empty.' });
   }
 
-  const applications = readApplications();
+  if (Number.isNaN(numericPrice) || numericPrice <= 0) {
+    return res.status(400).json({ error: 'Price must be a number greater than 0.' });
+  }
 
-  const newApplication = {
+  const menuItems = readMenu();
+  const newItem = {
     id: Date.now().toString(),
     name: cleanName,
-    email: cleanEmail,
-    resumeLink: cleanResumeLink,
-    createdAt: new Date().toISOString()
+    price: numericPrice
   };
 
-  applications.push(newApplication);
-  writeApplications(applications);
+  menuItems.push(newItem);
+  writeMenu(menuItems);
 
-  res.status(201).json(newApplication);
+  res.status(201).json(newItem);
 });
 
-// DELETE: Remove one application by id.
-app.delete('/api/applications/:id', (req, res) => {
+// DELETE: Remove one menu item by id.
+app.delete('/api/menu/:id', (req, res) => {
   const { id } = req.params;
-  const applications = readApplications();
-  const updatedApplications = applications.filter((application) => application.id !== id);
+  const menuItems = readMenu();
+  const updatedMenu = menuItems.filter((item) => item.id !== id);
 
-  if (updatedApplications.length === applications.length) {
-    return res.status(404).json({ error: 'Application not found.' });
+  if (updatedMenu.length === menuItems.length) {
+    return res.status(404).json({ error: 'Menu item not found.' });
   }
 
-  writeApplications(updatedApplications);
-  res.json({ message: 'Application deleted successfully.' });
+  writeMenu(updatedMenu);
+  res.json({ message: 'Menu item deleted successfully.' });
 });
 
 app.listen(PORT, () => {
-  console.log(`Job Portal server running at http://localhost:${PORT}`);
+  console.log(`Restaurant Menu server running at http://localhost:${PORT}`);
 });
