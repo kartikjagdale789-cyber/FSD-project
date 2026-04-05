@@ -3,136 +3,97 @@ const fs = require("fs").promises;
 const path = require("path");
 
 const app = express();
-const PORT = 3003;
-const DATA_FILE = path.join(__dirname, "courses.json");
+const PORT = 3007;
+const DATA_FILE = path.join(__dirname, "images.json");
 
 app.use(express.json({ limit: "50kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-function normalizeText(value) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
-function isValidText(value) {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-async function readData() {
+function isValidImageUrl(urlText) {
   try {
-    const fileData = await fs.readFile(DATA_FILE, "utf8");
-    const parsed = JSON.parse(fileData);
+    const parsedUrl = new URL(urlText);
+    const hasHttpProtocol = parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:";
+    const looksLikeImage = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(parsedUrl.pathname + parsedUrl.search);
+    return hasHttpProtocol && looksLikeImage;
+  } catch (error) {
+    return false;
+  }
+}
 
-    return {
-      courses: Array.isArray(parsed.courses) ? parsed.courses : [],
-      enrollments: Array.isArray(parsed.enrollments) ? parsed.enrollments : []
-    };
+async function readImages() {
+  try {
+    const data = await fs.readFile(DATA_FILE, "utf8");
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     if (error.code === "ENOENT") {
-      const fallback = { courses: [], enrollments: [] };
-      await fs.writeFile(DATA_FILE, JSON.stringify(fallback, null, 2), "utf8");
-      return fallback;
+      await fs.writeFile(DATA_FILE, "[]", "utf8");
+      return [];
     }
+
     throw error;
   }
 }
 
-async function writeData(data) {
-  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), "utf8");
+async function writeImages(images) {
+  await fs.writeFile(DATA_FILE, JSON.stringify(images, null, 2), "utf8");
 }
 
-app.get("/api/courses", async (req, res) => {
+app.get("/api/images", async (req, res) => {
   try {
-    const data = await readData();
-    res.json(data.courses);
+    const images = await readImages();
+    res.json(images);
   } catch (error) {
-    res.status(500).json({ error: "Failed to load courses." });
+    res.status(500).json({ error: "Failed to load images." });
   }
 });
 
-app.post("/api/courses", async (req, res) => {
-  const { title } = req.body;
+app.post("/api/images", async (req, res) => {
+  const { title, url } = req.body;
 
-  if (!isValidText(title)) {
-    return res.status(400).json({ error: "Course title is required." });
+  if (typeof title !== "string" || !title.trim()) {
+    return res.status(400).json({ error: "Image title is required." });
+  }
+
+  if (typeof url !== "string" || !isValidImageUrl(url.trim())) {
+    return res.status(400).json({ error: "Valid image URL is required (http/https with image extension)." });
   }
 
   try {
-    const data = await readData();
-    const normalizedTitle = normalizeText(title);
-
-    const alreadyExists = data.courses.some(
-      (course) => course.title.toLowerCase() === normalizedTitle.toLowerCase()
-    );
-
-    if (alreadyExists) {
-      return res.status(409).json({ error: "Course already exists." });
-    }
-
-    const course = {
+    const images = await readImages();
+    const image = {
       id: Date.now().toString(),
-      title: normalizedTitle,
+      title: title.trim(),
+      url: url.trim(),
       createdAt: new Date().toISOString()
     };
 
-    data.courses.unshift(course);
-    await writeData(data);
-    return res.status(201).json(course);
+    images.unshift(image);
+    await writeImages(images);
+    return res.status(201).json(image);
   } catch (error) {
-    return res.status(500).json({ error: "Failed to add course." });
+    return res.status(500).json({ error: "Failed to save image." });
   }
 });
 
-app.post("/api/enrollments", async (req, res) => {
-  const { studentName, courseId } = req.body;
-
-  if (!isValidText(studentName) || !isValidText(courseId)) {
-    return res.status(400).json({ error: "Student name and course are required." });
-  }
+app.delete("/api/images/:id", async (req, res) => {
+  const { id } = req.params;
 
   try {
-    const data = await readData();
-    const course = data.courses.find((item) => item.id === courseId.trim());
+    const images = await readImages();
+    const nextImages = images.filter((image) => image.id !== id);
 
-    if (!course) {
-      return res.status(404).json({ error: "Selected course not found." });
+    if (nextImages.length === images.length) {
+      return res.status(404).json({ error: "Image not found." });
     }
 
-    const normalizedStudentName = normalizeText(studentName);
-    const duplicate = data.enrollments.some(
-      (item) =>
-        item.courseId === course.id &&
-        item.studentName.toLowerCase() === normalizedStudentName.toLowerCase()
-    );
-
-    if (duplicate) {
-      return res.status(409).json({ error: "Student already enrolled in this course." });
-    }
-
-    const enrollment = {
-      id: Date.now().toString(),
-      studentName: normalizedStudentName,
-      courseId: course.id,
-      courseTitle: course.title,
-      enrolledAt: new Date().toISOString()
-    };
-
-    data.enrollments.unshift(enrollment);
-    await writeData(data);
-    return res.status(201).json(enrollment);
+    await writeImages(nextImages);
+    return res.status(204).send();
   } catch (error) {
-    return res.status(500).json({ error: "Failed to enroll student." });
-  }
-});
-
-app.get("/api/enrollments", async (req, res) => {
-  try {
-    const data = await readData();
-    res.json(data.enrollments);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to load enrollments." });
+    return res.status(500).json({ error: "Failed to delete image." });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Course Enrollment server running at http://localhost:${PORT}`);
+  console.log(`Image Gallery server running at http://localhost:${PORT}`);
 });
