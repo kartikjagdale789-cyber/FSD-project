@@ -1,51 +1,91 @@
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
-const PORT = 3002;
+const PORT = 3000;
+const APPLICATIONS_FILE = path.join(__dirname, 'applications.json');
 
-app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, 'public')));
 
-let feedbackEntries = [];
-
-app.post("/feedback", (req, res) => {
-  const { name, email, rating, comments } = req.body;
-
-  if (!name || !email || !rating) {
-    return res.status(400).json({ message: "name, email, and rating are required" });
+// Read all applications from JSON file.
+function readApplications() {
+  if (!fs.existsSync(APPLICATIONS_FILE)) {
+    return [];
   }
 
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailPattern.test(email)) {
-    return res.status(400).json({ message: "Invalid email format" });
+  const rawData = fs.readFileSync(APPLICATIONS_FILE, 'utf-8');
+
+  if (!rawData.trim()) {
+    return [];
   }
 
-  const entry = {
-    id: req.body.id || Date.now(),
-    name,
-    email,
-    rating: Number(rating),
-    comments: comments || "",
-    createdAt: req.body.createdAt || new Date().toISOString()
+  try {
+    return JSON.parse(rawData);
+  } catch (error) {
+    console.error('Could not parse applications.json:', error.message);
+    return [];
+  }
+}
+
+// Save applications back to JSON file.
+function writeApplications(applications) {
+  fs.writeFileSync(APPLICATIONS_FILE, JSON.stringify(applications, null, 2));
+}
+
+// GET: Return all applications (admin view).
+app.get('/api/applications', (req, res) => {
+  const applications = readApplications();
+  res.json(applications);
+});
+
+// POST: Submit a new job application.
+app.post('/api/applications', (req, res) => {
+  const { name, email, resumeLink } = req.body;
+
+  if (!name || !email || !resumeLink) {
+    return res.status(400).json({ error: 'Name, email, and resume link are required.' });
+  }
+
+  const cleanName = name.toString().trim();
+  const cleanEmail = email.toString().trim();
+  const cleanResumeLink = resumeLink.toString().trim();
+
+  if (!cleanName || !cleanEmail || !cleanResumeLink) {
+    return res.status(400).json({ error: 'All fields must be filled.' });
+  }
+
+  const applications = readApplications();
+
+  const newApplication = {
+    id: Date.now().toString(),
+    name: cleanName,
+    email: cleanEmail,
+    resumeLink: cleanResumeLink,
+    createdAt: new Date().toISOString()
   };
 
-  feedbackEntries.push(entry);
-  return res.status(201).json(entry);
+  applications.push(newApplication);
+  writeApplications(applications);
+
+  res.status(201).json(newApplication);
 });
 
-app.get("/feedback", (req, res) => {
-  return res.json(feedbackEntries);
-});
+// DELETE: Remove one application by id.
+app.delete('/api/applications/:id', (req, res) => {
+  const { id } = req.params;
+  const applications = readApplications();
+  const updatedApplications = applications.filter((application) => application.id !== id);
 
-app.delete("/feedback/:id", (req, res) => {
-  const id = Number(req.params.id);
-  feedbackEntries = feedbackEntries.filter((entry) => Number(entry.id) !== id);
-  return res.json({ message: "Feedback deleted successfully" });
+  if (updatedApplications.length === applications.length) {
+    return res.status(404).json({ error: 'Application not found.' });
+  }
+
+  writeApplications(updatedApplications);
+  res.json({ message: 'Application deleted successfully.' });
 });
 
 app.listen(PORT, () => {
-  console.log(`Feedback app server running at http://localhost:${PORT}`);
+  console.log(`Job Portal server running at http://localhost:${PORT}`);
 });
